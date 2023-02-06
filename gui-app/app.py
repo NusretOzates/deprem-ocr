@@ -8,7 +8,6 @@ import openai
 from easyocr import Reader
 from PIL import Image
 
-
 openai.api_key = "OPEN-API-KEY"
 reader = Reader(["tr"])
 
@@ -16,20 +15,6 @@ reader = Reader(["tr"])
 def get_text(input_img):
     result = reader.readtext(input_img, detail=0)
     return " ".join(result)
-
-
-def text_dict(input):
-    eval_result = ast.literal_eval(input)
-    return (
-        eval_result["il"],
-        eval_result["ilçe"],
-        eval_result["mahalle"],
-        eval_result["sokak"],
-        eval_result["no"],
-        eval_result["tel"],
-        eval_result["isim_soyisim"],
-        eval_result["adres"],
-    )
 
 
 def save_csv(mahalle, il, sokak, apartman):
@@ -80,7 +65,7 @@ Output:
     resp = response["choices"][0]["text"]
     resp = eval(resp.replace("'{", "{").replace("}'", "}"))
     resp = resp[0]["Tabular"]
-    return  (
+    return (
         resp,
         resp["il"],
         resp["ilçe"],
@@ -117,7 +102,11 @@ with gr.Blocks() as demo:
     submit_button = gr.Button()
     submit_button.click(get_text, img_area, ocr_result)
 
-    ocr_result.change(openai_response, ocr_result, [open_api_text,il, ilce, mahalle, sokak, no, tel, isim_soyisim, adres])
+    ocr_result.change(
+        openai_response,
+        ocr_result,
+        [open_api_text, il, ilce, mahalle, sokak, no, tel, isim_soyisim, adres],
+    )
 
     # json_out = gr.Textbox()
     # csv_out = gr.Textbox()
