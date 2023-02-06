@@ -1,11 +1,12 @@
-import gradio as gr
-from easyocr import Reader
-from PIL import Image
+import ast
+import csv
 import io
 import json
-import csv
+
+import gradio as gr
 import openai
-import ast
+from easyocr import Reader
+from PIL import Image
 
 
 openai.api_key = "OPEN-API-KEY"
@@ -15,6 +16,20 @@ reader = Reader(["tr"])
 def get_text(input_img):
     result = reader.readtext(input_img, detail=0)
     return " ".join(result)
+
+
+def text_dict(input):
+    eval_result = ast.literal_eval(input)
+    return (
+        eval_result["il"],
+        eval_result["ilçe"],
+        eval_result["mahalle"],
+        eval_result["sokak"],
+        eval_result["no"],
+        eval_result["tel"],
+        eval_result["isim_soyisim"],
+        eval_result["adres"],
+    )
 
 
 def save_csv(mahalle, il, sokak, apartman):
@@ -30,53 +45,6 @@ def get_json(mahalle, il, sokak, apartman):
     adres = {"mahalle": mahalle, "il": il, "sokak": sokak, "apartman": apartman}
     dump = json.dumps(adres, indent=4, ensure_ascii=False)
     return dump
-
-
-def text_dict_il(input):
-    eval_result = ast.literal_eval(input)["il"]
-
-    return eval_result
-
-
-def text_dict_mahalle(input):
-    eval_result = ast.literal_eval(input)["mahalle"]
-
-    return eval_result
-
-
-def text_dict_ilce(input):
-    eval_result = ast.literal_eval(input)["ilçe"]
-
-    return eval_result
-
-
-def text_dict_sokak(input):
-    eval_result = ast.literal_eval(input)["sokak"]
-
-    return eval_result
-
-
-def text_dict_no(input):
-    eval_result = ast.literal_eval(input)["no"]
-
-    return eval_result
-
-
-def text_dict_tel(input):
-    eval_result = ast.literal_eval(input)["tel"]
-
-    return eval_result
-
-
-def text_dict_isim(input):
-    eval_result = ast.literal_eval(input)["isim_soyisim"]
-    return eval_result
-
-
-def text_dict_adres(input):
-    eval_result = ast.literal_eval(input)["adres"]
-
-    return eval_result
 
 
 def openai_response(ocr_input):
@@ -112,7 +80,17 @@ Output:
     resp = response["choices"][0]["text"]
     resp = eval(resp.replace("'{", "{").replace("}'", "}"))
     resp = resp[0]["Tabular"]
-    return resp
+    return  (
+        resp,
+        resp["il"],
+        resp["ilçe"],
+        resp["mahalle"],
+        resp["sokak"],
+        resp["no"],
+        resp["tel"],
+        resp["isim_soyisim"],
+        resp["adres"],
+    )
 
 
 with gr.Blocks() as demo:
@@ -139,16 +117,7 @@ with gr.Blocks() as demo:
     submit_button = gr.Button()
     submit_button.click(get_text, img_area, ocr_result)
 
-    ocr_result.change(openai_response, ocr_result, open_api_text)
-
-    open_api_text.change(text_dict_il, [open_api_text], il)
-    open_api_text.change(text_dict_ilce, [open_api_text], ilce)
-    open_api_text.change(text_dict_mahalle, [open_api_text], mahalle)
-    open_api_text.change(text_dict_sokak, [open_api_text], sokak)
-    open_api_text.change(text_dict_no, [open_api_text], no)
-    open_api_text.change(text_dict_adres, [open_api_text], adres)
-    open_api_text.change(text_dict_tel, [open_api_text], tel)
-    open_api_text.change(text_dict_isim, [open_api_text], isim_soyisim)
+    ocr_result.change(openai_response, ocr_result, [open_api_text,il, ilce, mahalle, sokak, no, tel, isim_soyisim, adres])
 
     # json_out = gr.Textbox()
     # csv_out = gr.Textbox()
