@@ -38,56 +38,19 @@ def get_json(mahalle, il, sokak, apartman):
     return dump
 
 
-def text_dict_city(input):
-    eval_result = str(ast.literal_eval(input)["city"])
+def text_dict(input):
+    eval_result = ast.literal_eval(input)
 
-    return eval_result
-
-
-def text_dict_neighbourhood(input):
-    eval_result = str(ast.literal_eval(input)["neighbourhood"])
-
-    return eval_result
-
-
-def text_dict_distinct(input):
-    eval_result = str(ast.literal_eval(input)["distinct"])
-
-    return eval_result
-
-
-def text_dict_street(input):
-    eval_result = str(ast.literal_eval(input)["street"])
-
-    return eval_result
-
-
-def text_dict_no(input):
-    eval_result = str(ast.literal_eval(input)["no"])
-
-    return eval_result
-
-
-def text_dict_tel(input):
-    eval_result = str(ast.literal_eval(input)["tel"])
-
-    return eval_result
-
-
-def text_dict_name(input):
-    eval_result = str(ast.literal_eval(input)["name_surname"])
-    return eval_result
-
-
-def text_dict_address(input):
-    eval_result = str(ast.literal_eval(input)["address"])
-
-    return eval_result
-
-def text_dict_no(input):
-    eval_result = str(ast.literal_eval(input)["no"])
-
-    return eval_result
+    return (
+        str(eval_result['city']),
+        str(eval_result['distinct']),
+        str(eval_result['neighbourhood']),
+        str(eval_result['street']),
+        str(eval_result['address']),
+        str(eval_result['tel']),
+        str(eval_result['name_surname']),
+        str(eval_result['no']),
+    )
 
 
         
@@ -165,16 +128,8 @@ with gr.Blocks() as demo:
 
     ocr_result.change(openai_response, ocr_result, open_api_text, api_name="upload-text")
 
-    open_api_text.change(text_dict_city, [open_api_text], city)
-    open_api_text.change(text_dict_distinct, [open_api_text], distinct)
-    open_api_text.change(text_dict_neighbourhood, [open_api_text], neighbourhood)
-    open_api_text.change(text_dict_street, [open_api_text], street)
-    open_api_text.change(text_dict_address, [open_api_text], address)
-    open_api_text.change(text_dict_tel, [open_api_text], tel)
-    open_api_text.change(text_dict_name, [open_api_text], name_surname)
-    open_api_text.change(text_dict_no, [open_api_text], no)
-    
-
+    open_api_text.change(text_dict, open_api_text,
+                         [city, distinct, neighbourhood, street, address, tel, name_surname, no])
 
 if __name__ == "__main__":
     demo.launch()
