@@ -6,11 +6,17 @@ import json
 import csv
 import openai
 import ast
+import os
 
 
-openai.api_key = "OPEN-API-KEY"
+openai.api_key = os.getenv('API_KEY')
 reader = Reader(["tr"])
 
+def get_parsed_address(input_img):
+
+    address_full_text = get_text(input_img)
+    return openai_response(address_full_text)
+    
 
 def get_text(input_img):
     result = reader.readtext(input_img, detail=0)
@@ -32,72 +38,71 @@ def get_json(mahalle, il, sokak, apartman):
     return dump
 
 
-def text_dict_il(input):
-    eval_result = ast.literal_eval(input)["il"]
+def text_dict_city(input):
+    eval_result = str(ast.literal_eval(input)["city"])
 
     return eval_result
 
 
-def text_dict_mahalle(input):
-    eval_result = ast.literal_eval(input)["mahalle"]
+def text_dict_neighbourhood(input):
+    eval_result = str(ast.literal_eval(input)["neighbourhood"])
 
     return eval_result
 
 
-def text_dict_ilce(input):
-    eval_result = ast.literal_eval(input)["ilçe"]
+def text_dict_distinct(input):
+    eval_result = str(ast.literal_eval(input)["distinct"])
 
     return eval_result
 
 
-def text_dict_sokak(input):
-    eval_result = ast.literal_eval(input)["sokak"]
+def text_dict_street(input):
+    eval_result = str(ast.literal_eval(input)["street"])
 
     return eval_result
 
 
 def text_dict_no(input):
-    eval_result = ast.literal_eval(input)["no"]
+    eval_result = str(ast.literal_eval(input)["no"])
 
     return eval_result
 
 
 def text_dict_tel(input):
-    eval_result = ast.literal_eval(input)["tel"]
+    eval_result = str(ast.literal_eval(input)["tel"])
 
     return eval_result
 
 
-def text_dict_isim(input):
-    eval_result = ast.literal_eval(input)["isim_soyisim"]
+def text_dict_name(input):
+    eval_result = str(ast.literal_eval(input)["name_surname"])
     return eval_result
 
 
-def text_dict_adres(input):
-    eval_result = ast.literal_eval(input)["adres"]
+def text_dict_address(input):
+    eval_result = str(ast.literal_eval(input)["address"])
+
+    return eval_result
+
+def text_dict_no(input):
+    eval_result = str(ast.literal_eval(input)["no"])
 
     return eval_result
 
 
+        
 def openai_response(ocr_input):
-    prompt = f"""Tabular Data Extraction
-You are a highly intelligent and accurate tabular data extractor from plain text input and especially from emergency text that carries address information, your inputs can be text of arbitrary size, but the output should be in [{{'tabular': {{'entity_type': 'entity'}} }}] JSON format
-
-Force it to only extract keys that are shared as an example in the examples section, if a key value is not found in the text input, then it should be ignored and should be returned as an empty string
-
-Have only il, ilçe, mahalle, sokak, no, tel, isim_soyisim, adres
-
-Examples:
-
-
-Input: Deprem sırasında evimizde yer alan adresimiz: İstanbul, Beşiktaş, Yıldız Mahallesi, Cumhuriyet Caddesi No: 35, cep telefonu numaram 5551231256, adim Ahmet Yilmaz
-Output: [{{'Tabular': '{{'il': 'İstanbul', 'ilçe': 'Beşiktaş', 'mahalle': 'Yıldız Mahallesi', 'sokak': 'Cumhuriyet Caddesi', 'no': 35, 'tel': 5551231256, 'isim_soyisim': 'Ahmet Yılmaz', 'adres': 'İstanbul, Beşiktaş, Yıldız Mahallesi, Cumhuriyet Caddesi No: 35'}}' }}]
-
-
-Input: {ocr_input}
-Output:
-
-"""
+    prompt = f"""Tabular Data Extraction You are a highly intelligent and accurate tabular data extractor from 
+            plain text input and especially from emergency text that carries address information, your inputs can be text 
+            of arbitrary size, but the output should be in [{{'tabular': {{'entity_type': 'entity'}} }}] JSON format Force it 
+            to only extract keys that are shared as an example in the examples section, if a key value is not found in the 
+            text input, then it should be ignored. Have only city, distinct, neighbourhood, 
+            street, no, tel, name_surname, address Examples: Input: Deprem sırasında evimizde yer alan adresimiz: İstanbul, 
+            Beşiktaş, Yıldız Mahallesi, Cumhuriyet Caddesi No: 35, cep telefonu numaram 5551231256, adim Ahmet Yilmaz 
+            Output: {{'city': 'İstanbul', 'distinct': 'Beşiktaş', 'neighbourhood': 'Yıldız Mahallesi', 'street': 'Cumhuriyet Caddesi', 'no': '35', 'tel': '5551231256', 'name_surname': 'Ahmet Yılmaz', 'address': 'İstanbul, Beşiktaş, Yıldız Mahallesi, Cumhuriyet Caddesi No: 35'}}
+            Input: {ocr_input}
+            Output:
+        """
 
     response = openai.Completion.create(
         model="text-davinci-003",
@@ -111,51 +116,64 @@ Output:
     )
     resp = response["choices"][0]["text"]
     resp = eval(resp.replace("'{", "{").replace("}'", "}"))
-    resp = resp[0]["Tabular"]
+    resp["input"] = ocr_input
+    dict_keys = [
+    'city',
+    'distinct',
+    'neighbourhood',
+    'street',
+    'no',
+    'tel',
+    'name_surname',
+    'address',
+    'input',
+    ]
+    for key in dict_keys:
+        if key not in resp.keys():
+            resp[key] = ''
     return resp
 
 
 with gr.Blocks() as demo:
-    gr.Markdown(""" # Image to Text - Adres""")
+    gr.Markdown(
+    """
+    # Enkaz Bildirme Uygulaması
+    """)
+    gr.Markdown("Bu uygulamada ekran görüntüsü sürükleyip bırakarak AFAD'a enkaz bildirimi yapabilirsiniz. Mesajı metin olarak da girebilirsiniz, tam adresi ayrıştırıp döndürür. API olarak kullanmak isterseniz sayfanın en altında use via api'ya tıklayın.")
     with gr.Row():
-        img_area = gr.Image()
-        ocr_result = gr.Textbox(label="OCR")
-    open_api_text = gr.Textbox(label="OPENAI")
-
+        img_area = gr.Image(label="Ekran Görüntüsü yükleyin 👇")
+        ocr_result = gr.Textbox(label="Metin yükleyin 👇 ")
+    open_api_text = gr.Textbox(label="Tam Adres")
+    submit_button = gr.Button(label="Yükle")
     with gr.Column():
         with gr.Row():
-            il = gr.Textbox(label="il")
-            ilce = gr.Textbox(label="ilce")
+            city = gr.Textbox(label="İl")
+            distinct = gr.Textbox(label="İlçe")
         with gr.Row():
-            mahalle = gr.Textbox(label="mahalle")
-            sokak = gr.Textbox(label="sokak/cadde/bulvar")
+            neighbourhood = gr.Textbox(label="Mahalle")
+            street = gr.Textbox(label="Sokak/Cadde/Bulvar")
         with gr.Row():
-            no = gr.Textbox(label="no")
-            tel = gr.Textbox(label="tel")
+            tel = gr.Textbox(label="Telefon")
         with gr.Row():
-            isim_soyisim = gr.Textbox(label="isim_soyisim")
-            adres = gr.Textbox(label="adres")
+            name_surname = gr.Textbox(label="İsim Soyisim")
+            address = gr.Textbox(label="Adres")
+        with gr.Row():
+            no = gr.Textbox(label="Kapı No")
 
-    submit_button = gr.Button()
-    submit_button.click(get_text, img_area, ocr_result)
 
-    ocr_result.change(openai_response, ocr_result, open_api_text)
+    submit_button.click(get_parsed_address, inputs = img_area, outputs = open_api_text, api_name="upload_image")
 
-    open_api_text.change(text_dict_il, [open_api_text], il)
-    open_api_text.change(text_dict_ilce, [open_api_text], ilce)
-    open_api_text.change(text_dict_mahalle, [open_api_text], mahalle)
-    open_api_text.change(text_dict_sokak, [open_api_text], sokak)
-    open_api_text.change(text_dict_no, [open_api_text], no)
-    open_api_text.change(text_dict_adres, [open_api_text], adres)
+    ocr_result.change(openai_response, ocr_result, open_api_text, api_name="upload-text")
+
+    open_api_text.change(text_dict_city, [open_api_text], city)
+    open_api_text.change(text_dict_distinct, [open_api_text], distinct)
+    open_api_text.change(text_dict_neighbourhood, [open_api_text], neighbourhood)
+    open_api_text.change(text_dict_street, [open_api_text], street)
+    open_api_text.change(text_dict_address, [open_api_text], address)
     open_api_text.change(text_dict_tel, [open_api_text], tel)
-    open_api_text.change(text_dict_isim, [open_api_text], isim_soyisim)
-
-    # json_out = gr.Textbox()
-    # csv_out = gr.Textbox()
-
-    # adres_submit = gr.Button()
-    # adres_submit.click(get_json, [mahalle, il, sokak, apartman], json_out)
-    # adres_submit.click(save_csv, [mahalle, il, sokak, apartman], csv_out)
+    open_api_text.change(text_dict_name, [open_api_text], name_surname)
+    open_api_text.change(text_dict_no, [open_api_text], no)
+    
 
 
 if __name__ == "__main__":
